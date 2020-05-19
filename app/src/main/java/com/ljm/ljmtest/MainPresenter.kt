@@ -8,14 +8,15 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import androidx.core.content.ContextCompat
-import com.ljm.ljmtest.location.LocationTask
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.ljm.ljmtest.location.LocationWorker
+import java.util.concurrent.TimeUnit
 
-class MainPresenter constructor(var c:Context, var action:MainActivityAction) : Presenter,
-    LocationListener {
-    private lateinit var locationManager: LocationManager
+class MainPresenter constructor(var c:Context, var action:MainActivityAction) : Presenter{
+//    private lateinit var locationManager: LocationManager
 
     companion object {
         private const val interval = 1000L
@@ -24,7 +25,7 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
     }
 
     override fun onCreate(intent: Intent?) {
-        locationManager = c.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+//        locationManager = c.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     }
 
     override fun onResume() {
@@ -33,7 +34,7 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
             action.requestPermission()
         }else{
 
-            var isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+            /*var isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
             var isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
 
             if(isNetworkEnabled){
@@ -47,7 +48,13 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
             }else{
 
                 action.showToast("location provider not enabled...")
-            }
+            }*/
+
+            /*val locationTestWorkRequest = OneTimeWorkRequestBuilder<LocationWorker>().build()
+            WorkManager.getInstance(c).enqueue(locationTestWorkRequest)*/
+
+            val locationTestPeriodicRequest = PeriodicWorkRequestBuilder<LocationWorker>(15, TimeUnit.MINUTES).build()
+            WorkManager.getInstance(c).enqueue(locationTestPeriodicRequest)
         }
     }
 
@@ -57,21 +64,6 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
 
     override fun onDestroy() {
 
-    }
-
-    override fun onLocationChanged(location: Location?) {
-        location?.let {
-            action.setInfo(location.latitude, location.longitude)
-        }
-    }
-
-    override fun onStatusChanged(p0: String?, p1: Int, p2: Bundle?) {
-    }
-
-    override fun onProviderEnabled(p0: String?) {
-    }
-
-    override fun onProviderDisabled(p0: String?) {
     }
 
     interface MainActivityAction{
