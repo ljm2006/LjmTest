@@ -24,8 +24,8 @@ class LocationWorker constructor(var c: Context, var workerParams:WorkerParamete
     val thread = LocationCheckingThread(c)
 
     companion object {
-        private const val interval = 1000L
-        private const val distance = 1.0f
+        private const val interval = 10000L
+        private const val distance = 100.0f
 
         class LocationCheckingThread constructor(var c: Context) : Thread(), LocationListener {
             override fun run() {
