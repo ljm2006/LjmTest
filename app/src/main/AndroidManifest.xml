@@ -27,6 +27,11 @@
         <activity android:name=".bluetooth.BluetoothActivity">
 
         </activity>
+        <service android:name=".network.NetworkJob"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            >
+
+        </service>
     </application>
 
 </manifest>

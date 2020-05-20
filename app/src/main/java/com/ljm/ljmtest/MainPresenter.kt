@@ -2,16 +2,16 @@ package com.ljm.ljmtest
 
 import android.Manifest
 import android.app.Activity
+import android.app.job.JobInfo
+import android.app.job.JobScheduler
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Build
 import android.os.Bundle
 import androidx.core.content.ContextCompat
 import androidx.work.OneTimeWorkRequestBuilder
@@ -19,6 +19,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.ljm.ljmtest.common.LjmUtil
 import com.ljm.ljmtest.location.LocationWorker
+import com.ljm.ljmtest.network.NetworkJob
 import java.util.concurrent.TimeUnit
 
 class MainPresenter constructor(var c:Context, var action:MainActivityAction) : Presenter{
@@ -30,6 +31,8 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
 
         const val REQ_CODE_BT = 700
         const val REQ_CODE_BT_DISCOVERABLE = 701
+
+        const val JOB_ID_NETWORK = 100
     }
 
     override fun onCreate(intent: Intent?) {
@@ -63,8 +66,21 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
             /*val locationTestWorkRequest = OneTimeWorkRequestBuilder<LocationWorker>().build()
             WorkManager.getInstance(c).enqueue(locationTestWorkRequest)*/
 
-            /*val locationTestPeriodicRequest = PeriodicWorkRequestBuilder<LocationWorker>(15, TimeUnit.MINUTES).build()
-            WorkManager.getInstance(c).enqueue(locationTestPeriodicRequest)*/
+            val locationTestPeriodicRequest = PeriodicWorkRequestBuilder<LocationWorker>(15, TimeUnit.MINUTES).build()
+            WorkManager.getInstance(c).enqueue(locationTestPeriodicRequest)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+
+                val scheduler = c.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
+                val jobServiceComponent = ComponentName(c, NetworkJob::class.java)
+                val jobInfo = JobInfo.Builder(JOB_ID_NETWORK, jobServiceComponent)
+                    .setPeriodic(TimeUnit.MINUTES.toMillis(15))
+                    .build()
+
+                scheduler.schedule(jobInfo)
+            }else{
+
+            }
         }
     }
 
@@ -108,7 +124,7 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
             }
             REQ_CODE_BT_DISCOVERABLE -> {
                 if (resultCode != Activity.RESULT_CANCELED){
-
+                    LjmUtil.D("mode time : $resultCode")
                     action.showToast("discoverable mode activated!")
                 }
             }
@@ -120,8 +136,10 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
             when(intent!!.action!!){
                 BluetoothDevice.ACTION_FOUND ->{
                     val device:BluetoothDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)!!
-                    LjmUtil.D("Name : ${device.name} address : ${device.address}")
-                    action.showToast("Name : ${device.name} address : ${device.address}")
+                    val rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, 0)
+
+                    LjmUtil.D("Name : ${device.name} address : ${device.address} rssi : $rssi")
+                    action.showToast("Name : ${device.name} address : ${device.address} rssi : $rssi")
                 }
             }
         }
