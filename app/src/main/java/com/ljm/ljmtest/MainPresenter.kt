@@ -18,6 +18,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.ljm.ljmtest.common.LjmUtil
+import com.ljm.ljmtest.data.BluetoothData
 import com.ljm.ljmtest.location.LocationWorker
 import com.ljm.ljmtest.network.NetworkJob
 import java.util.concurrent.TimeUnit
@@ -34,6 +35,8 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
 
         const val JOB_ID_NETWORK = 100
     }
+
+    private val bluetoothDataArray: ArrayList<BluetoothData> = ArrayList()
 
     override fun onCreate(intent: Intent?) {
 //        locationManager = c.getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -66,7 +69,7 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
             /*val locationTestWorkRequest = OneTimeWorkRequestBuilder<LocationWorker>().build()
             WorkManager.getInstance(c).enqueue(locationTestWorkRequest)*/
 
-            val locationTestPeriodicRequest = PeriodicWorkRequestBuilder<LocationWorker>(15, TimeUnit.MINUTES).build()
+           /* val locationTestPeriodicRequest = PeriodicWorkRequestBuilder<LocationWorker>(15, TimeUnit.MINUTES).build()
             WorkManager.getInstance(c).enqueue(locationTestPeriodicRequest)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -80,7 +83,7 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
                 scheduler.schedule(jobInfo)
             }else{
 
-            }
+            }*/
         }
     }
 
@@ -102,6 +105,7 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
                     return
                 }
 
+                bluetoothDataArray.clear()
                 action.activateBluetooth()
             }
             R.id.bluetooth_discoverable -> {
@@ -140,6 +144,16 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
 
                     LjmUtil.D("Name : ${device.name} address : ${device.address} rssi : $rssi")
                     action.showToast("Name : ${device.name} address : ${device.address} rssi : $rssi")
+
+                    val name = if(device.name == null) "null" else device.name
+
+                    val data = BluetoothData(name, device.address, rssi)
+
+                    if(!bluetoothDataArray.contains(data)){
+                        bluetoothDataArray.add(data)
+                        action.refreshBluetoothDataList(bluetoothDataArray)
+                    }
+
                 }
             }
         }
@@ -153,5 +167,7 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
 
         fun activateBluetooth()
         fun activateBluetoothDiscoverable()
+
+        fun refreshBluetoothDataList(dataArray:ArrayList<BluetoothData>)
     }
 }
