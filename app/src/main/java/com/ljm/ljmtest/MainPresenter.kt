@@ -6,6 +6,10 @@ import android.app.job.JobInfo
 import android.app.job.JobScheduler
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.le.AdvertiseCallback
+import android.bluetooth.le.AdvertiseData
+import android.bluetooth.le.AdvertiseSettings
+import android.bluetooth.le.BluetoothLeAdvertiser
 import android.content.*
 import android.content.pm.PackageManager
 import android.location.Location
@@ -13,6 +17,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.os.ParcelUuid
 import androidx.core.content.ContextCompat
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
@@ -21,7 +26,11 @@ import com.ljm.ljmtest.common.LjmUtil
 import com.ljm.ljmtest.data.BluetoothData
 import com.ljm.ljmtest.location.LocationWorker
 import com.ljm.ljmtest.network.NetworkJob
+import com.ljm.ljmtest.util.PreferenceManager
+import java.nio.charset.Charset
+import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.collections.ArrayList
 
 class MainPresenter constructor(var c:Context, var action:MainActivityAction) : Presenter{
 //    private lateinit var locationManager: LocationManager
@@ -37,11 +46,18 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
     }
 
     private val bluetoothDataArray: ArrayList<BluetoothData> = ArrayList()
+    private val prefManager:PreferenceManager = PreferenceManager.getInstance(c)
 
     override fun onCreate(intent: Intent?) {
 //        locationManager = c.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
         c.registerReceiver(btReceiver, filter)
+
+        if(prefManager.getUUID() == ""){
+            val uuid = UUID.randomUUID().toString()
+            LjmUtil.D("uuid : $uuid" )
+            prefManager.saveUUID(uuid)
+        }
     }
 
     override fun onResume() {
@@ -111,6 +127,45 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
             R.id.bluetooth_discoverable -> {
 
                 action.activateBluetoothDiscoverable()
+            }
+
+            R.id.bluetooth_advertise -> {
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
+
+                    val advertiser:BluetoothLeAdvertiser = BluetoothAdapter.getDefaultAdapter().bluetoothLeAdvertiser
+                    val advertiseSettings = AdvertiseSettings.Builder()
+                        .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
+                        .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
+                        .setConnectable(false)
+                        .setTimeout(10000)
+                        .build()
+
+                    val parcelUuid = ParcelUuid(UUID.fromString(prefManager.getUUID()))
+
+                    val advertiseData = AdvertiseData.Builder()
+                        .setIncludeDeviceName(true)
+                        /*.addServiceUuid(parcelUuid)
+                        .addServiceData(parcelUuid, "0xff".toByteArray(Charset.forName("UTF-8")))*/
+                        .build()
+
+                    val advertiseCallback = object :AdvertiseCallback(){
+                        override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
+                            LjmUtil.D("advertise onStartSuccess()")
+                            super.onStartSuccess(settingsInEffect)
+                        }
+
+                        override fun onStartFailure(errorCode: Int) {
+                            LjmUtil.D("advertise onStartFailure() -> $errorCode")
+                            super.onStartFailure(errorCode)
+                        }
+                    }
+
+                    advertiser.startAdvertising(advertiseSettings, advertiseData, advertiseCallback)
+
+                }else{
+
+                    action.showToast("지원되지 않는 기능입니다.")
+                }
             }
         }
 

@@ -25,6 +25,15 @@
         android:text="블루투스 검색허용"
         android:onClick="onClick"
         />
+    <Button
+        android:id="@+id/bluetooth_advertise"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toRightOf="@+id/bluetooth_discoverable"
+        android:onClick="onClick"
+        android:text="advertise"
+        />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list"
