@@ -6,18 +6,14 @@ import android.app.job.JobInfo
 import android.app.job.JobScheduler
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.bluetooth.le.AdvertiseCallback
-import android.bluetooth.le.AdvertiseData
-import android.bluetooth.le.AdvertiseSettings
-import android.bluetooth.le.BluetoothLeAdvertiser
+import android.bluetooth.le.*
 import android.content.*
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.os.Build
-import android.os.Bundle
-import android.os.ParcelUuid
+import android.os.*
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
@@ -47,6 +43,8 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
 
     private val bluetoothDataArray: ArrayList<BluetoothData> = ArrayList()
     private val prefManager:PreferenceManager = PreferenceManager.getInstance(c)
+
+    private lateinit var bluetoothLeScanner:BluetoothLeScanner;
 
     override fun onCreate(intent: Intent?) {
 //        locationManager = c.getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -141,9 +139,11 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
                         .build()
 
                     val parcelUuid = ParcelUuid(UUID.fromString(prefManager.getUUID()))
-
+                    LjmUtil.D("UUID : ${prefManager.getUUID()}")
                     val advertiseData = AdvertiseData.Builder()
-                        .setIncludeDeviceName(true)
+                        .addServiceUuid(parcelUuid)
+//                        .addServiceData(parcelUuid, "abcd".toByteArray(Charset.forName("UTF-8")))
+//                        .setIncludeDeviceName(true)
                         /*.addServiceUuid(parcelUuid)
                         .addServiceData(parcelUuid, "0xff".toByteArray(Charset.forName("UTF-8")))*/
                         .build()
@@ -151,6 +151,7 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
                     val advertiseCallback = object :AdvertiseCallback(){
                         override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
                             LjmUtil.D("advertise onStartSuccess()")
+                            action.showToast("advertise start success!")
                             super.onStartSuccess(settingsInEffect)
                         }
 
@@ -165,6 +166,17 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
                 }else{
 
                     action.showToast("지원되지 않는 기능입니다.")
+                }
+            }
+            R.id.bluetooth_discovery ->{
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
+                    bluetoothDataArray.clear()
+                    bluetoothLeScanner = BluetoothAdapter.getDefaultAdapter().bluetoothLeScanner
+                    bluetoothLeScanner.startScan(scanCallback)
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        bluetoothLeScanner.stopScan(scanCallback)
+                        action.showToast("BLE scan stopped...")
+                    }, 60000)
                 }
             }
         }
@@ -213,6 +225,31 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
             }
         }
 
+    }
+
+    private val scanCallback:ScanCallback = @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    object : ScanCallback(){
+        override fun onScanFailed(errorCode: Int) {
+            super.onScanFailed(errorCode)
+        }
+
+        override fun onScanResult(callbackType: Int, result: ScanResult?) {
+            val device = result!!.device
+//            val deviceName = if(device.name != null) device.name else "null"
+            val deviceName = if(result.scanRecord!!.serviceUuids != null) result.scanRecord!!.serviceUuids[0].toString() else if(device.name != null) device.name else "null"
+            val data = BluetoothData(deviceName, device.address, result.rssi.toShort())
+            Handler(Looper.getMainLooper()).post {
+                if(!bluetoothDataArray.contains(data)){
+                    bluetoothDataArray.add(data)
+                    action.refreshBluetoothDataList(bluetoothDataArray)
+                }
+            }
+            super.onScanResult(callbackType, result)
+        }
+
+        override fun onBatchScanResults(results: MutableList<ScanResult>?) {
+            super.onBatchScanResults(results)
+        }
     }
 
     interface MainActivityAction{
