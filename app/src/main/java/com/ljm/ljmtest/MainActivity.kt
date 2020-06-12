@@ -93,6 +93,7 @@ class MainActivity : AppCompatActivity(), MainPresenter.MainActivityAction {
         val name:TextView = v.findViewById(R.id.name)
         val address:TextView = v.findViewById(R.id.address)
         val rssi:TextView = v.findViewById(R.id.rssi)
+        val uuid:TextView = v.findViewById(R.id.uuid)
     }
 
     private class BTListAdapter constructor(val c: Context, val dataArray: ArrayList<BluetoothData>) : RecyclerView.Adapter<BTViewHolder>(){
@@ -111,6 +112,7 @@ class MainActivity : AppCompatActivity(), MainPresenter.MainActivityAction {
             holder.name.text = data.name
             holder.address.text = data.address
             holder.rssi.text = data.rssi.toString()
+            holder.uuid.text = data.uuid
         }
 
     }

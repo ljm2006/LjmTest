@@ -214,7 +214,7 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
 
                     val name = if(device.name == null) "null" else device.name
 
-                    val data = BluetoothData(name, device.address, rssi)
+                    val data = BluetoothData(name, device.address, rssi, "")
 
                     if(!bluetoothDataArray.contains(data)){
                         bluetoothDataArray.add(data)
@@ -236,8 +236,9 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             val device = result!!.device
 //            val deviceName = if(device.name != null) device.name else "null"
-            val deviceName = if(result.scanRecord!!.serviceUuids != null) result.scanRecord!!.serviceUuids[0].toString() else if(device.name != null) device.name else "null"
-            val data = BluetoothData(deviceName, device.address, result.rssi.toShort())
+            val deviceName = if(device.name != null) device.name else "null"
+            val uuid:String = if(result.scanRecord!!.serviceUuids != null) result.scanRecord!!.serviceUuids[0].toString() else "null"
+            val data = BluetoothData(deviceName, device.address, result.rssi.toShort(), uuid)
             Handler(Looper.getMainLooper()).post {
                 if(!bluetoothDataArray.contains(data)){
                     bluetoothDataArray.add(data)
