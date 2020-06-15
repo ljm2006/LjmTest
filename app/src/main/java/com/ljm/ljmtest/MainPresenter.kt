@@ -2,30 +2,17 @@ package com.ljm.ljmtest
 
 import android.Manifest
 import android.app.Activity
-import android.app.job.JobInfo
-import android.app.job.JobScheduler
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
+import android.bluetooth.*
 import android.bluetooth.le.*
 import android.content.*
 import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
 import android.os.*
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import com.ljm.ljmtest.common.LjmUtil
 import com.ljm.ljmtest.data.BluetoothData
-import com.ljm.ljmtest.location.LocationWorker
-import com.ljm.ljmtest.network.NetworkJob
 import com.ljm.ljmtest.util.PreferenceManager
-import java.nio.charset.Charset
 import java.util.*
-import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
 
 class MainPresenter constructor(var c:Context, var action:MainActivityAction) : Presenter{
@@ -44,7 +31,8 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
     private val bluetoothDataArray: ArrayList<BluetoothData> = ArrayList()
     private val prefManager:PreferenceManager = PreferenceManager.getInstance(c)
 
-    private lateinit var bluetoothLeScanner:BluetoothLeScanner;
+    private lateinit var bluetoothLeScanner:BluetoothLeScanner
+    private lateinit var bluetoothGatt:BluetoothGatt
 
     override fun onCreate(intent: Intent?) {
 //        locationManager = c.getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -170,13 +158,36 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
             }
             R.id.bluetooth_discovery ->{
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
-                    bluetoothDataArray.clear()
-                    bluetoothLeScanner = BluetoothAdapter.getDefaultAdapter().bluetoothLeScanner
-                    bluetoothLeScanner.startScan(scanCallback)
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        bluetoothLeScanner.stopScan(scanCallback)
-                        action.showToast("BLE scan stopped...")
-                    }, 60000)
+                    if(BluetoothAdapter.getDefaultAdapter().isEnabled){
+
+                        bluetoothDataArray.clear()
+                        bluetoothLeScanner = BluetoothAdapter.getDefaultAdapter().bluetoothLeScanner
+                        bluetoothLeScanner.startScan(scanCallback)
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            bluetoothLeScanner.stopScan(scanCallback)
+                            action.showToast("BLE scan stopped...")
+                        }, 60000)
+                    }else{
+
+                        action.showToast("블루투스를 켜주세요.")
+                    }
+                }
+            }
+            R.id.bluetooth_temperature -> {
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
+                    if(BluetoothAdapter.getDefaultAdapter().isEnabled){
+
+                        LjmUtil.D("온도계 찾기 시작!")
+                        bluetoothLeScanner = BluetoothAdapter.getDefaultAdapter().bluetoothLeScanner
+                        bluetoothLeScanner.startScan(thermoScanCallback)
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            bluetoothLeScanner.stopScan(thermoScanCallback)
+                            action.showToast("BLE scan stopped...")
+                        }, 300000)
+                    }else{
+
+                        action.showToast("블루투스를 켜주세요.")
+                    }
                 }
             }
         }
@@ -250,6 +261,97 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
 
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
             super.onBatchScanResults(results)
+        }
+    }
+    //온도계 전용 callback
+    private val thermoScanCallback:ScanCallback = @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    object : ScanCallback(){
+
+        override fun onScanFailed(errorCode: Int) {
+            super.onScanFailed(errorCode)
+        }
+
+        override fun onScanResult(callbackType: Int, result: ScanResult?) {
+
+            val device = result!!.device
+
+            if(device.name == "THERMOCARE"){
+                action.showToast("device found!\ndevice name : ${device.name}" +
+                        "\ndevice uuid: ${result.scanRecord!!.serviceUuids}\ndevice address: ${device.address}")
+                LjmUtil.D("device found!\ndevice name : ${device.name}" +
+                        "\ndevice uuid: ${result.scanRecord!!.serviceUuids}\ndevice address: ${device.address}")
+                bluetoothLeScanner.stopScan(this)
+
+                bluetoothGatt = device.connectGatt(c, true, bluetoothGattCallback)
+
+            }else{
+
+                LjmUtil.D("검색은 됬으나 온도계가 아님 -> ${device.name}")
+            }
+
+            super.onScanResult(callbackType, result)
+        }
+
+        override fun onBatchScanResults(results: MutableList<ScanResult>?) {
+            super.onBatchScanResults(results)
+        }
+    }
+
+    var bluetoothGattCallback:BluetoothGattCallback = object: BluetoothGattCallback(){
+
+        override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
+            when(newState){
+                BluetoothProfile.STATE_CONNECTED -> {
+                    LjmUtil.D("온도계와 연결됨")
+                    val discovered = gatt!!.discoverServices()
+                    LjmUtil.D("서비스 찾기 시도 성공함? $discovered")
+                }
+                BluetoothProfile.STATE_DISCONNECTED -> {
+                    LjmUtil.D("온도계와 연결해제됨")
+                }
+            }
+        }
+
+        override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+            when(status){
+                BluetoothGatt.GATT_SUCCESS ->{
+                    LjmUtil.D("onServiceDiscovered received: $status")
+                    LjmUtil.D("====service====")
+                    val gattServices = gatt!!.services
+                    gattServices.forEach { gattService ->
+                        LjmUtil.D("service uuid : ${gattService.uuid}")
+
+                        val gattCharacteristics = gattService.characteristics
+                        gattCharacteristics.forEach{ gattCharacteristic ->
+
+                            LjmUtil.D("characteristic uuid : ${gattCharacteristic.uuid}")
+                            gatt.readCharacteristic(gattCharacteristic)
+                        }
+                    }
+
+                }
+            }
+        }
+
+
+
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt?,
+            characteristic: BluetoothGattCharacteristic?,
+            status: Int
+        ) {
+            LjmUtil.D("onCharacteristicRead(), status : $status, uuid : ${characteristic!!.uuid}")
+            when(status){
+                BluetoothGatt.GATT_SUCCESS -> {
+                    val data: ByteArray? = characteristic.value
+                    if(data?.isNotEmpty() == true){
+                        val hexStringData = data.joinToString(separator = " ") {
+                            String.format("%02X", it)
+                        }
+                        LjmUtil.D("characteristic.uuid -> ${characteristic.uuid}, value -> $hexStringData")
+                    }
+                }
+            }
         }
     }
 
