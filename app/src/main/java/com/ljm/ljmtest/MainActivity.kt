@@ -1,6 +1,7 @@
 package com.ljm.ljmtest
 
 import android.bluetooth.BluetoothAdapter
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -89,6 +90,11 @@ class MainActivity : AppCompatActivity(), MainPresenter.MainActivityAction {
         list.adapter = BTListAdapter(this, dataArray)
     }
 
+    override fun sendBroadcast(action: String) {
+        val intent = Intent(action)
+        sendBroadcast(intent)
+    }
+
     private class BTViewHolder(v: View) : RecyclerView.ViewHolder(v){
         val name:TextView = v.findViewById(R.id.name)
         val address:TextView = v.findViewById(R.id.address)
@@ -115,5 +121,11 @@ class MainActivity : AppCompatActivity(), MainPresenter.MainActivityAction {
             holder.uuid.text = data.uuid
         }
 
+    }
+
+    private val bleReceiver:BroadcastReceiver = object: BroadcastReceiver(){
+        override fun onReceive(c: Context?, data: Intent?) {
+
+        }
     }
 }

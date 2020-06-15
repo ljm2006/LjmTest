@@ -286,7 +286,7 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
 
             }else{
 
-                LjmUtil.D("검색은 됬으나 온도계가 아님 -> ${device.name}")
+                LjmUtil.D("검색은 됐으나 온도계가 아님 -> ${device.name}")
             }
 
             super.onScanResult(callbackType, result)
@@ -316,24 +316,30 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
             when(status){
                 BluetoothGatt.GATT_SUCCESS ->{
                     LjmUtil.D("onServiceDiscovered received: $status")
-                    LjmUtil.D("====service====")
                     val gattServices = gatt!!.services
                     gattServices.forEach { gattService ->
-                        LjmUtil.D("service uuid : ${gattService.uuid}")
 
-                        val gattCharacteristics = gattService.characteristics
-                        gattCharacteristics.forEach{ gattCharacteristic ->
+                        val serviceUUID = gattService.uuid.toString()
+                        if(serviceUUID.contains(LjmUtil.BLE_THERMOCARE_TEMPERATURE_SERVICE)){
+                            LjmUtil.D("service uuid : ${gattService.uuid}")
 
-                            LjmUtil.D("characteristic uuid : ${gattCharacteristic.uuid}")
-                            gatt.readCharacteristic(gattCharacteristic)
+                            val gattCharacteristics = gattService.characteristics
+
+                            gattCharacteristics.forEach{ gattCharacteristic ->
+                                val uuid:String = gattCharacteristic.uuid.toString()
+
+                                if(uuid.contains(LjmUtil.THERMOCARE_CHARACTERISTIC_TEMPERATURE_MEASUREMENT)){
+
+                                    gatt.setCharacteristicNotification(gattCharacteristic, true)
+                                    gatt.readCharacteristic(gattCharacteristic)
+                                    return
+                                }
+                            }
                         }
                     }
-
                 }
             }
         }
-
-
 
         override fun onCharacteristicRead(
             gatt: BluetoothGatt?,
@@ -353,6 +359,21 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
                 }
             }
         }
+
+        override fun onCharacteristicChanged(
+            gatt: BluetoothGatt?,
+            characteristic: BluetoothGattCharacteristic?
+        ) {
+
+            LjmUtil.D("onCharacteristicChanged()")
+            val data: ByteArray? = characteristic!!.value
+            if(data?.isNotEmpty() == true){
+                val hexStringData = data.joinToString(separator = " ") {
+                    String.format("%02X", it)
+                }
+                LjmUtil.D("characteristic.uuid -> ${characteristic.uuid}, value -> $hexStringData")
+            }
+        }
     }
 
     interface MainActivityAction{
@@ -364,5 +385,6 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
         fun activateBluetoothDiscoverable()
 
         fun refreshBluetoothDataList(dataArray:ArrayList<BluetoothData>)
+        fun sendBroadcast(action:String)
     }
 }
