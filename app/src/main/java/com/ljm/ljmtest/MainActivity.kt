@@ -122,10 +122,4 @@ class MainActivity : AppCompatActivity(), MainPresenter.MainActivityAction {
         }
 
     }
-
-    private val bleReceiver:BroadcastReceiver = object: BroadcastReceiver(){
-        override fun onReceive(c: Context?, data: Intent?) {
-
-        }
-    }
 }

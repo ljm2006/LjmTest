@@ -7,6 +7,7 @@ import android.bluetooth.le.*
 import android.content.*
 import android.content.pm.PackageManager
 import android.os.*
+import android.speech.tts.TextToSpeech
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import com.ljm.ljmtest.common.LjmUtil
@@ -15,7 +16,7 @@ import com.ljm.ljmtest.util.PreferenceManager
 import java.util.*
 import kotlin.collections.ArrayList
 
-class MainPresenter constructor(var c:Context, var action:MainActivityAction) : Presenter{
+class MainPresenter constructor(var c:Context, var action:MainActivityAction) : Presenter, TextToSpeech.OnInitListener{
 //    private lateinit var locationManager: LocationManager
 
     companion object {
@@ -26,6 +27,8 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
         const val REQ_CODE_BT_DISCOVERABLE = 701
 
         const val JOB_ID_NETWORK = 100
+
+        const val ACTION_TEMPERATURE_MEASURED = "com.ljm.ljmtest.ACTION_TEMPERATURE_MEASURED"
     }
 
     private val bluetoothDataArray: ArrayList<BluetoothData> = ArrayList()
@@ -33,6 +36,7 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
 
     private lateinit var bluetoothLeScanner:BluetoothLeScanner
     private lateinit var bluetoothGatt:BluetoothGatt
+    private lateinit var tts:TextToSpeech
 
     override fun onCreate(intent: Intent?) {
 //        locationManager = c.getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -44,6 +48,11 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
             LjmUtil.D("uuid : $uuid" )
             prefManager.saveUUID(uuid)
         }
+
+        val bleFilter = IntentFilter()
+        bleFilter.addAction(ACTION_TEMPERATURE_MEASURED)
+
+        tts = TextToSpeech(c, this)
     }
 
     override fun onResume() {
@@ -94,7 +103,17 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
     }
 
     override fun onDestroy() {
+        if(::bluetoothGatt.isInitialized){
+
+            bluetoothGatt.close()
+        }
         c.unregisterReceiver(btReceiver)
+
+        if(::tts.isInitialized){
+
+            tts.stop()
+            tts.shutdown()
+        }
     }
 
     fun onClick(id: Int) {
@@ -329,10 +348,16 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
                                 val uuid:String = gattCharacteristic.uuid.toString()
 
                                 if(uuid.contains(LjmUtil.THERMOCARE_CHARACTERISTIC_TEMPERATURE_MEASUREMENT)){
-
-                                    gatt.setCharacteristicNotification(gattCharacteristic, true)
-                                    gatt.readCharacteristic(gattCharacteristic)
-                                    return
+                                    /*LjmUtil.D("characteristic uuid : ${gattCharacteristic.uuid}")
+                                    gatt.setCharacteristicNotification(gattCharacteristic, true)*/
+                                    val descriptorConfig = gattCharacteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))
+                                    descriptorConfig.value = BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+                                    val isConfigWrite = gatt.writeDescriptor(descriptorConfig)
+                                    LjmUtil.D("config write is successful : $isConfigWrite")
+                                    /*val isRead = gatt.readCharacteristic(gattCharacteristic)
+                                    LjmUtil.D("read operation is successful : $isRead")*/
+                                    val isSetCharacteristicNoti = gatt.setCharacteristicNotification(gattCharacteristic, true)
+                                    LjmUtil.D("setting characteristic notification is successful : $isSetCharacteristicNoti")
                                 }
                             }
                         }
@@ -372,6 +397,26 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
                     String.format("%02X", it)
                 }
                 LjmUtil.D("characteristic.uuid -> ${characteristic.uuid}, value -> $hexStringData")
+
+                val hexDataSplit = hexStringData.split(" ")
+                val temperatureHex = hexDataSplit[3] + hexDataSplit[2] + hexDataSplit[1]
+                LjmUtil.D("temperature Hex : $temperatureHex")
+                var temperatureData = (Integer.parseInt(temperatureHex, 16)).toDouble()
+                LjmUtil.D("temperature Integer : $temperatureData")
+                if(hexDataSplit[4] == "FF"){
+                    temperatureData *= 0.1
+                }
+
+                LjmUtil.D("temperature : $temperatureData")
+                val msg = String.format("%.1f도 입니다.", temperatureData)
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+
+                    tts.speak(msg, TextToSpeech.QUEUE_FLUSH, null, null)
+                }else{
+
+                    tts.speak(msg, TextToSpeech.QUEUE_FLUSH, null)
+                }
             }
         }
     }
@@ -386,5 +431,16 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
 
         fun refreshBluetoothDataList(dataArray:ArrayList<BluetoothData>)
         fun sendBroadcast(action:String)
+    }
+
+    //TTS init
+    override fun onInit(status: Int) {
+        if(status != TextToSpeech.ERROR){
+            action.showToast("TTS engine loaded...")
+            tts.language = Locale.KOREAN
+            tts.setPitch(1.0f)
+            tts.setSpeechRate(1.0f)
+        }
+
     }
 }
