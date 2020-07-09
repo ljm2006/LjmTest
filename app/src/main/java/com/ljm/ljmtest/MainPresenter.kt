@@ -7,6 +7,7 @@ import android.bluetooth.le.*
 import android.content.*
 import android.content.pm.PackageManager
 import android.os.*
+import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
@@ -38,6 +39,9 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
     private lateinit var bluetoothGatt:BluetoothGatt
     private lateinit var tts:TextToSpeech
 
+    private lateinit var bluetoothAdapter: BluetoothAdapter
+    private var oldScanning = false
+
     override fun onCreate(intent: Intent?) {
 //        locationManager = c.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
@@ -52,7 +56,17 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
         val bleFilter = IntentFilter()
         bleFilter.addAction(ACTION_TEMPERATURE_MEASURED)
 
+        LjmUtil.D("bluetooth le systemFeature : ${c.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)}")
+
         tts = TextToSpeech(c, this)
+
+        //device 정보 가져오기
+        val deviceManufacturer = Build.MANUFACTURER;
+        val deviceModel = Build.MODEL
+        val deviceVersion = Build.VERSION.SDK_INT
+        val deviceProductName = Settings.Secure.getString(c.contentResolver, "bluetooth_name")
+        val deviceFullName = "$deviceModel($deviceProductName)"
+        action.setDeviceInfo(deviceManufacturer, deviceFullName, deviceVersion.toString())
     }
 
     override fun onResume() {
@@ -209,6 +223,24 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
                     }
                 }
             }
+            R.id.bluetooth_discovery_old -> {
+                bluetoothDataArray.clear()
+                bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                if(!oldScanning){
+
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        oldScanning = false
+                        bluetoothAdapter.stopLeScan(leScanCallback)
+                        action.showToast("old scan stopped because of timeout...")
+                    }, 300000)
+                    oldScanning = true
+                    bluetoothAdapter.startLeScan(leScanCallback)
+                }else{
+
+                    oldScanning = false
+                    bluetoothAdapter.stopLeScan(leScanCallback)
+                }
+            }
         }
 
     }
@@ -282,6 +314,38 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
             super.onBatchScanResults(results)
         }
     }
+
+    //older ble scan callback
+    private val leScanCallback = BluetoothAdapter.LeScanCallback{device, i, bytes ->
+        Handler(Looper.getMainLooper()).post {
+//            val deviceName = if(device.name != null) device.name else "null"
+            val deviceName = if(device.name != null) device.name else "null"
+            val uuid:String = "null"
+            val data = BluetoothData(deviceName, device.address, 0.toShort(), uuid)
+            Handler(Looper.getMainLooper()).post {
+                if(!bluetoothDataArray.contains(data)){
+                    bluetoothDataArray.add(data)
+                    action.refreshBluetoothDataList(bluetoothDataArray)
+                }
+            }
+
+            if(deviceName != "null"){
+                if(deviceName == "THERMOCARE"){
+
+                    Handler(Looper.getMainLooper()).post {
+                        stopOldScan()
+                        action.showToast("device found! scan stop!")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun stopOldScan(){
+        oldScanning = false
+        bluetoothAdapter.stopLeScan(leScanCallback)
+    }
+
     //온도계 전용 callback
     private val thermoScanCallback:ScanCallback = @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     object : ScanCallback(){
@@ -431,6 +495,8 @@ class MainPresenter constructor(var c:Context, var action:MainActivityAction) : 
 
         fun refreshBluetoothDataList(dataArray:ArrayList<BluetoothData>)
         fun sendBroadcast(action:String)
+
+        fun setDeviceInfo(manufacturer:String, model:String, version:String);
     }
 
     //TTS init

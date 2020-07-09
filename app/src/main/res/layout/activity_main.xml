@@ -52,13 +52,30 @@
         android:onClick="onClick"
         android:text="블루투스 온도계 연동"
         />
+    <Button
+        android:id="@+id/bluetooth_discovery_old"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@+id/bluetooth_search"
+        app:layout_constraintLeft_toRightOf="@+id/bluetooth_temperature"
+        android:text="discovery(old)"
+        android:onClick="onClick"
+        />
+    <TextView
+        android:id="@+id/device_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@+id/bluetooth_discovery"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:text="Device Information"
+        />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintTop_toBottomOf="@+id/bluetooth_discovery"
+        app:layout_constraintTop_toBottomOf="@+id/device_info"
         app:layout_constraintBottom_toBottomOf="parent"
         />
 

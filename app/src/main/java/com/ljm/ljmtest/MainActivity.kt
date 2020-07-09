@@ -95,6 +95,16 @@ class MainActivity : AppCompatActivity(), MainPresenter.MainActivityAction {
         sendBroadcast(intent)
     }
 
+    override fun setDeviceInfo(
+        manufacturer: String,
+        model: String,
+        version: String
+    ) {
+        val deviceInfo = "manufacturer : $manufacturer, model : $model, version: $version"
+        val textDeviceInfo:TextView = findViewById(R.id.device_info)
+        textDeviceInfo.text = deviceInfo
+    }
+
     private class BTViewHolder(v: View) : RecyclerView.ViewHolder(v){
         val name:TextView = v.findViewById(R.id.name)
         val address:TextView = v.findViewById(R.id.address)
