@@ -18,14 +18,14 @@
         android:name=".MyApp"
         >
         <activity android:name=".MainActivity">
+
+        </activity>
+        <activity android:name=".bluetooth.BLEActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-        <activity android:name=".bluetooth.BluetoothActivity">
-
         </activity>
         <service android:name=".network.NetworkJob"
             android:permission="android.permission.BIND_JOB_SERVICE"
