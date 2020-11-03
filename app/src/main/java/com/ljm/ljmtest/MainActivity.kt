@@ -1,7 +1,6 @@
 package com.ljm.ljmtest
 
 import android.bluetooth.BluetoothAdapter
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -15,8 +14,6 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.ljm.ljmtest.data.BluetoothData
-import kotlinx.android.synthetic.main.activity_main.*
-import java.util.jar.Manifest
 
 class MainActivity : AppCompatActivity(), MainPresenter.MainActivityAction {
     lateinit var presenter: MainPresenter
@@ -86,7 +83,7 @@ class MainActivity : AppCompatActivity(), MainPresenter.MainActivityAction {
     }
 
     override fun refreshBluetoothDataList(dataArray: ArrayList<BluetoothData>) {
-        val list: RecyclerView = findViewById(R.id.list)
+        val list: RecyclerView = findViewById(R.id.listView)
         list.adapter = BTListAdapter(this, dataArray)
     }
 

@@ -45,4 +45,7 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
     implementation "androidx.work:work-runtime-ktx:2.3.4"
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'org.greenrobot:eventbus:3.0.0'
+    implementation 'com.google.code.gson:gson:2.2.4'
+    implementation files('lib/minewBeaconAdmin.jar')
 }

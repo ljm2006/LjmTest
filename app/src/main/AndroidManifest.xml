@@ -21,6 +21,9 @@
 
         </activity>
         <activity android:name=".bluetooth.BLEActivity">
+
+        </activity>
+        <activity android:name=".bluetooth.BeaconSettingActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -30,6 +33,9 @@
         <service android:name=".network.NetworkJob"
             android:permission="android.permission.BIND_JOB_SERVICE"
             >
+
+        </service>
+        <service android:name=".bluetooth.CustomConnectService">
 
         </service>
     </application>
