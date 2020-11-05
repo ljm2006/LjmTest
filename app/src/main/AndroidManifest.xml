@@ -7,6 +7,10 @@
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+
 
     <application
         android:allowBackup="true"
@@ -24,6 +28,9 @@
 
         </activity>
         <activity android:name=".bluetooth.BeaconSettingActivity">
+
+        </activity>
+        <activity android:name=".camera.CameraAndAlbumOpenActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -38,6 +45,16 @@
         <service android:name=".bluetooth.CustomConnectService">
 
         </service>
+        <provider
+            android:authorities="com.ljm.ljmtest.camera.provider"
+            android:name="androidx.core.content.FileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true"
+            >
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_path"
+                />
+        </provider>
     </application>
 
 </manifest>
