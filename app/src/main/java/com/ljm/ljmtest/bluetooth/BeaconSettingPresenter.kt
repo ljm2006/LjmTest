@@ -93,10 +93,16 @@ class BeaconSettingPresenter constructor(var c: Context, var a: BeaconSettingAct
         val beaconConnection = CustomMinewBeaconConnection(c, beacon)
         beaconConnection.minewBeaconConnectionListener = object : CustomMinewBeaconConnectionListener{
 
-            override fun onChangeState(var1: CustomMinewBeaconConnection?, state: ConnectionState?) {
+            override fun onChangeState(conn: CustomMinewBeaconConnection?, state: ConnectionState?) {
                 when(state!!){
                     ConnectionState.BeaconStatus_Connected -> {
                         LjmUtil.D("connected beacon major : ${beaconConnection.setting.major}")
+                        var beaconSetting:CustomMinewBeaconSetting = conn!!.setting
+                        val randomMajor = (Math.random() * 60000).toInt()
+                        LjmUtil.D("major set : $randomMajor")
+                        beaconSetting.major = randomMajor
+
+                        conn.writeSetting("minew123")
                     }
                     ConnectionState.BeaconStatus_ConnectFailed -> {
                         LjmUtil.D("connection failed")
@@ -107,8 +113,14 @@ class BeaconSettingPresenter constructor(var c: Context, var a: BeaconSettingAct
                 }
             }
 
-            override fun onWriteSettings(var1: CustomMinewBeaconConnection?, var2: Boolean) {
+            override fun onWriteSettings(var1: CustomMinewBeaconConnection?, success: Boolean) {
+                if(success){
 
+                    a.showToast("데이터 변경 성공!!")
+                }else{
+
+                    a.showToast("데이터 변경 실패 ㅠㅠ")
+                }
             }
 
         }
@@ -118,8 +130,7 @@ class BeaconSettingPresenter constructor(var c: Context, var a: BeaconSettingAct
             LjmUtil.D("connectService is not null!")
             beaconConnection.connect()
         }
-//        this.state = ConnectionState.BeaconStatus_Connecting
-//            beaconConnection.connect()
+
     }
 
     interface BeaconSettingAction{
