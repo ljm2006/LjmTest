@@ -5,20 +5,26 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.View
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.ljm.ljmtest.BuildConfig
 import com.ljm.ljmtest.R
 import java.io.File
 
 class CameraAndAlbumOpenActivity : AppCompatActivity(), CameraAlbumPresenter.CameraAlbumAction {
     private lateinit var presenter:CameraAlbumPresenter
+    private lateinit var img: ImageView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_camera_album_open)
+
+        img = findViewById(R.id.img)
 
         presenter = CameraAlbumPresenter(this, this)
         presenter.onCreate(intent)
@@ -26,14 +32,7 @@ class CameraAndAlbumOpenActivity : AppCompatActivity(), CameraAlbumPresenter.Cam
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if(resultCode == Activity.RESULT_OK){
-
-            when(requestCode){
-                6666 -> {
-
-                }
-            }
-        }
+        presenter.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onRequestPermissionsResult(
@@ -67,5 +66,13 @@ class CameraAndAlbumOpenActivity : AppCompatActivity(), CameraAlbumPresenter.Cam
                 startActivityForResult(intent, 6666)
             }
         }
+    }
+
+    override fun loadImage(path: String) {
+        Glide.with(this)
+            .load(File(path))
+            .diskCacheStrategy(DiskCacheStrategy.NONE)
+            .skipMemoryCache(true)
+            .into(img)
     }
 }
