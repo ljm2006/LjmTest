@@ -38,6 +38,9 @@ class CameraAlbumPresenter constructor(var c: Context, var a:CameraAlbumAction) 
             R.id.btn_camera_open -> {
                 openCamera()
             }
+            R.id.btn_album_open -> {
+                openAlbum()
+            }
         }
     }
 
@@ -55,6 +58,22 @@ class CameraAlbumPresenter constructor(var c: Context, var a:CameraAlbumAction) 
                 a.openCameraActivity(createImageFile())
             }
 
+        }
+    }
+
+    fun openAlbum(){
+        val permissionCheck = ContextCompat.checkSelfPermission(c, Manifest.permission.CAMERA)
+        val permissionCheck2 = ContextCompat.checkSelfPermission(c, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        val permissionCheck3 = ContextCompat.checkSelfPermission(c, Manifest.permission.READ_EXTERNAL_STORAGE)
+
+        if(permissionCheck != PackageManager.PERMISSION_GRANTED &&
+            permissionCheck2 != PackageManager.PERMISSION_GRANTED &&
+            permissionCheck3 != PackageManager.PERMISSION_GRANTED){
+
+            a.requestPermission(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE), 9001)
+        }else{
+
+            a.openAlbumActivity()
         }
     }
 
@@ -88,6 +107,24 @@ class CameraAlbumPresenter constructor(var c: Context, var a:CameraAlbumAction) 
                 6666 -> {
                     a.loadImage(imgPath)
                 }
+                6667 -> {
+                    data?.data?.let {
+                        val cursor = c.contentResolver.query(it, null, null, null, null)
+                        if(cursor!!.moveToFirst()){
+                            val count = cursor.columnCount
+                            LjmUtil.D("columnIndex : $count")
+                            val columnList = cursor.columnNames
+                            LjmUtil.D("index : ${cursor.getColumnIndexOrThrow("_data")}")
+                            val index = cursor.getColumnIndexOrThrow("_data")
+                            val path = cursor.getString(index)
+                            LjmUtil.D("data : $path")
+                            a.loadImage(path)
+                            /*for (element in columnList){
+                                LjmUtil.D("name : $element")
+                            }*/
+                        }
+                    }
+                }
             }
         }
     }
@@ -96,6 +133,7 @@ class CameraAlbumPresenter constructor(var c: Context, var a:CameraAlbumAction) 
         fun showToast(msg:String)
         fun requestPermission(permissions:Array<String>, reqCode:Int)
         fun openCameraActivity(file: File)
+        fun openAlbumActivity()
         fun loadImage(path:String)
     }
 }
