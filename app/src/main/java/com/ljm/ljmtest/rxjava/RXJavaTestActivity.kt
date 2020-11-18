@@ -26,10 +26,21 @@ class RXJavaTestActivity : AppCompatActivity() {
         }
 
         Observable.just("하얀 늑대는 100의 데미지를 입었다.")
-            .map { "화살공격으로 인하여 " + it }
-            .map { it + "(25% 추가로 데미지를 받음)" }
+            .map { "화살공격으로 인하여 $it" }
+            .map { "$it(25% 추가로 데미지를 받음)" }
             .subscribe{
                 LjmUtil.D(it)
             }
+
+        test("Test Function", "index 1", "index 2")
+            .flatMap { Observable.just(it) }
+            .subscribe {
+
+            }
+    }
+
+    fun test(vararg text:String) : Observable<List<String>>{
+        val textArray = text.asList()
+        return Observable.fromArray(textArray)
     }
 }
