@@ -9,6 +9,7 @@ import com.ljm.ljmtest.R
 import com.ljm.ljmtest.common.LjmUtil
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.kotlin.toObservable
+import kotlinx.coroutines.*
 
 
 class RXKotlinTestActivity : AppCompatActivity() {
@@ -20,6 +21,7 @@ class RXKotlinTestActivity : AppCompatActivity() {
         changeViewText(findViewById(R.id.text), "Hello world")
         inputDamageLog("철수", "영희", 100)
 
+        startFirstCoroutine()
     }
 
     fun onClick(v:View){
@@ -57,5 +59,24 @@ class RXKotlinTestActivity : AppCompatActivity() {
             .subscribe {
                 LjmUtil.D(it)
             }
+    }
+
+    fun startFirstCoroutine(){
+        Log("Coroutine start")
+        val scope = CoroutineScope(Dispatchers.Default)
+
+        val job = scope.launch {
+            for(i in 0..10){
+
+                delay(500)
+                Log("Hello world~!")
+
+                if(i == 10){
+                    Log("Coroutine stop")
+                }
+            }
+        }
+
+
     }
 }
