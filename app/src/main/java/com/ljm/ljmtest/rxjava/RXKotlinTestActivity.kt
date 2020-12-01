@@ -7,7 +7,9 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.ljm.ljmtest.R
 import com.ljm.ljmtest.common.LjmUtil
+import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.kotlin.subscribeBy
 import io.reactivex.rxjava3.kotlin.toObservable
 import kotlinx.coroutines.*
 
@@ -22,6 +24,7 @@ class RXKotlinTestActivity : AppCompatActivity() {
         inputDamageLog("철수", "영희", 100)
 
         startFirstCoroutine()
+        testMonad(100)
     }
 
     fun onClick(v:View){
@@ -78,5 +81,14 @@ class RXKotlinTestActivity : AppCompatActivity() {
         }
 
 
+    }
+
+    fun testMonad(intData:Int){
+        val maybeValue : Maybe<Int> = Maybe.just(intData)
+        maybeValue.subscribeBy(
+            onError = {it.printStackTrace()},
+            onComplete = {Log("Test Complete!")},
+            onSuccess = {Log("Test Data : $it")}
+        )
     }
 }
