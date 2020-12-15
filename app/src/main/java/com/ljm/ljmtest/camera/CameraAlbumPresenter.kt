@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Environment
 import android.text.TextUtils
 import androidx.core.content.ContextCompat
@@ -40,6 +41,12 @@ class CameraAlbumPresenter constructor(var c: Context, var a:CameraAlbumAction) 
             }
             R.id.btn_album_open -> {
                 openAlbum()
+            }
+            R.id.btn_file_chooser_open -> {
+                a.openFileChooser()
+            }
+            R.id.btn_create_temp -> {
+                a.createTempFileImageView()
             }
         }
     }
@@ -125,6 +132,23 @@ class CameraAlbumPresenter constructor(var c: Context, var a:CameraAlbumAction) 
                         }
                     }
                 }
+                6668 -> {
+                    if(resultCode == Activity.RESULT_OK){
+
+                        if(data!!.clipData != null){
+                            val count = data.clipData!!.itemCount
+                            LjmUtil.D("count : $count")
+                        }else{
+
+                            if(data.data != null){
+                                val uri = data.data!!
+                                val imgPath = data.data!!.path
+                                LjmUtil.D("single img path : $imgPath")
+                                a.loadImageFromUri(data.data!!)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -134,6 +158,9 @@ class CameraAlbumPresenter constructor(var c: Context, var a:CameraAlbumAction) 
         fun requestPermission(permissions:Array<String>, reqCode:Int)
         fun openCameraActivity(file: File)
         fun openAlbumActivity()
+        fun openFileChooser()
         fun loadImage(path:String)
+        fun loadImageFromUri(uri:Uri)
+        fun createTempFileImageView()
     }
 }

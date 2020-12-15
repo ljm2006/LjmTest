@@ -1,6 +1,8 @@
 package com.ljm.ljmtest.camera
 
 import android.content.Intent
+import android.graphics.drawable.BitmapDrawable
+import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.View
@@ -12,6 +14,10 @@ import androidx.core.content.FileProvider
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.ljm.ljmtest.R
+import com.ljm.ljmtest.util.TempFileManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.File
 
 class CameraAndAlbumOpenActivity : AppCompatActivity(), CameraAlbumPresenter.CameraAlbumAction {
@@ -71,9 +77,15 @@ class CameraAndAlbumOpenActivity : AppCompatActivity(), CameraAlbumPresenter.Cam
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         intent.data = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         intent.type = "image/*"
-//        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-//        startActivityForResult(Intent.createChooser(intent, "select picture"), 6667)
         startActivityForResult(intent, 6667)
+    }
+
+    override fun openFileChooser() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        intent.type = "image/*"
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        startActivityForResult(Intent.createChooser(intent, "select picture"), 6668)
     }
 
     override fun loadImage(path: String) {
@@ -82,5 +94,18 @@ class CameraAndAlbumOpenActivity : AppCompatActivity(), CameraAlbumPresenter.Cam
             .diskCacheStrategy(DiskCacheStrategy.NONE)
             .skipMemoryCache(true)
             .into(img)
+    }
+
+    override fun loadImageFromUri(uri: Uri) {
+        Glide.with(this)
+            .load(uri)
+            .diskCacheStrategy(DiskCacheStrategy.NONE)
+            .skipMemoryCache(true)
+            .into(img)
+    }
+
+    override fun createTempFileImageView() {
+        val bitmap = (img.drawable as BitmapDrawable).bitmap
+        TempFileManager.createBitmapImageTempFile(this, bitmap, "test_img")
     }
 }
